@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.image_sets import router as image_sets_router
+from app.api.projects import router as projects_router
 from app.api.videos import router as videos_router
 from app.core.config import settings
 from app.services.storage import ensure_data_dirs
@@ -13,8 +14,8 @@ def create_app() -> FastAPI:
 
     app = FastAPI(
         title="House Marker API",
-        version="0.1.0",
-        description="Backend for extracting video frames and saving point and line correspondences.",
+        version="0.2.0",
+        description="Backend for projects, video frame extraction, and cross image set annotations.",
     )
 
     app.add_middleware(
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health_router)
+    app.include_router(projects_router)
     app.include_router(image_sets_router)
     app.include_router(videos_router)
 

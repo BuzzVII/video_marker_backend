@@ -1,6 +1,11 @@
 from pydantic import BaseModel
 
 
+class ExportProject(BaseModel):
+    id: str
+    name: str
+
+
 class ExportImageSet(BaseModel):
     id: str
     name: str
@@ -8,6 +13,7 @@ class ExportImageSet(BaseModel):
 
 class ExportFrame(BaseModel):
     id: str
+    image_set_id: str
     width: int
     height: int
     frame_index: int
@@ -15,6 +21,7 @@ class ExportFrame(BaseModel):
 
 
 class PointObservationExport(BaseModel):
+    image_set_id: str
     image_id: str
     x_normalized: float
     y_normalized: float
@@ -28,6 +35,7 @@ class PointExport(BaseModel):
 
 
 class LineObservationExport(BaseModel):
+    image_set_id: str
     image_id: str
     start_point_id: str
     end_point_id: str
@@ -39,7 +47,8 @@ class LineExport(BaseModel):
 
 
 class ReconstructionExport(BaseModel):
-    image_set: ExportImageSet
+    project: ExportProject
+    image_sets: list[ExportImageSet]
     frames: list[ExportFrame]
     points: list[PointExport]
     lines: list[LineExport]

@@ -8,6 +8,7 @@ class Point(BaseModel):
 
 class PointPosition(BaseModel):
     pointId: str
+    imageSetId: str | None = None
     imageId: str
     x: float
     y: float
@@ -19,6 +20,7 @@ class Line(BaseModel):
 
 class LineOccurrence(BaseModel):
     lineId: str
+    imageSetId: str | None = None
     imageId: str
     startPointId: str
     endPointId: str

@@ -7,11 +7,7 @@ from sqlmodel import Session, func, select
 from app.db.session import get_session
 from app.models.frame import Frame
 from app.models.image_set import ImageSet
-from app.schemas.annotations import AnnotationPayload
-from app.schemas.exports import ReconstructionExport
 from app.schemas.image_sets import FrameRead, ImageSetRead, ImageSetSummary
-from app.services.annotations import get_annotation_payload, save_annotation_payload
-from app.services.exports import build_reconstruction_export
 
 router = APIRouter(prefix="/api/image-sets", tags=["image sets"])
 
@@ -36,6 +32,7 @@ def list_image_sets(session: Session = Depends(get_session)) -> list[ImageSetSum
         result.append(
             ImageSetSummary(
                 id=image_set.id,
+                project_id=image_set.project_id,
                 name=image_set.name,
                 created_at=image_set.created_at,
                 frame_count=frame_count,
@@ -58,6 +55,7 @@ def read_image_set(
 
     return ImageSetRead(
         id=image_set.id,
+        project_id=image_set.project_id,
         name=image_set.name,
         created_at=image_set.created_at,
         source_type=image_set.source_type,
@@ -92,31 +90,3 @@ def read_frame_image(
         raise HTTPException(status_code=404, detail="Frame image file not found on disk")
 
     return FileResponse(image_path, media_type="image/jpeg")
-
-
-@router.get("/{image_set_id}/annotations", response_model=AnnotationPayload)
-def read_annotations(
-    image_set_id: str,
-    session: Session = Depends(get_session),
-) -> AnnotationPayload:
-    get_image_set_or_404(session, image_set_id)
-    return get_annotation_payload(session, image_set_id)
-
-
-@router.put("/{image_set_id}/annotations", response_model=AnnotationPayload)
-def update_annotations(
-    image_set_id: str,
-    payload: AnnotationPayload,
-    session: Session = Depends(get_session),
-) -> AnnotationPayload:
-    get_image_set_or_404(session, image_set_id)
-    return save_annotation_payload(session, image_set_id, payload)
-
-
-@router.get("/{image_set_id}/export", response_model=ReconstructionExport)
-def export_image_set(
-    image_set_id: str,
-    session: Session = Depends(get_session),
-) -> ReconstructionExport:
-    image_set = get_image_set_or_404(session, image_set_id)
-    return build_reconstruction_export(session, image_set)

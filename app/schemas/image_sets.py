@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 class ImageSetSummary(BaseModel):
     id: str
+    project_id: str
     name: str
     created_at: datetime
     frame_count: int
@@ -23,6 +24,7 @@ class FrameRead(BaseModel):
 
 class ImageSetRead(BaseModel):
     id: str
+    project_id: str
     name: str
     created_at: datetime
     source_type: str
