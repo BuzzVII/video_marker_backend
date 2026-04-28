@@ -1,0 +1,30 @@
+[project]
+name = "house-marker-api"
+version = "0.1.0"
+description = "FastAPI backend for image frame annotation and floor plan reconstruction workflows"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic>=1.13.2",
+    "fastapi[standard]>=0.115.0",
+    "opencv-python-headless>=4.10.0.84",
+    "pillow>=10.4.0",
+    "pydantic-settings>=2.4.0",
+    "python-multipart>=0.0.9",
+    "sqlmodel>=0.0.22",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.6.8",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.uv]
+package = false
