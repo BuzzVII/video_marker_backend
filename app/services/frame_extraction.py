@@ -41,9 +41,9 @@ def extract_frames(
 
         if raw_index % frame_step == 0:
             height, width = image.shape[:2]
-            frame_number = saved_index + 1
-            frame_id = f"{image_set_id}-frame-{frame_number:06d}"
-            image_path = out_dir / f"{frame_id}.jpg"
+            local_frame_id = f"frame-{saved_index + 1:06d}"
+            frame_id = f"{image_set_id}-{local_frame_id}"
+            image_path = out_dir / f"{local_frame_id}.jpg"
 
             write_ok = cv2.imwrite(str(image_path), image, [int(cv2.IMWRITE_JPEG_QUALITY), 92])
             if not write_ok:
@@ -52,7 +52,7 @@ def extract_frames(
             frame = Frame(
                 id=frame_id,
                 image_set_id=image_set_id,
-                frame_index=frame_number,
+                frame_index=saved_index + 1,
                 timestamp_seconds=raw_index / fps,
                 image_path=str(image_path),
                 width=width,

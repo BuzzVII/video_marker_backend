@@ -9,6 +9,7 @@ from app.models.annotation_document import AnnotationDocument
 from app.models.frame import Frame
 from app.models.image_set import ImageSet
 from app.models.project import Project
+from app.models.reconstruction_model import ReconstructionModel
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -18,8 +19,7 @@ if config.config_file_name is not None:
 
 target_metadata = SQLModel.metadata
 
-# Keep imports alive for Alembic autogenerate.
-_ = (Project, ImageSet, Frame, AnnotationDocument)
+_ = (Project, ImageSet, Frame, AnnotationDocument, ReconstructionModel)
 
 
 def run_migrations_offline() -> None:

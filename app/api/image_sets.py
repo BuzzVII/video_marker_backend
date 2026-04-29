@@ -1,13 +1,16 @@
 from pathlib import Path
+import shutil
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import FileResponse
 from sqlmodel import Session, func, select
 
 from app.db.session import get_session
 from app.models.frame import Frame
 from app.models.image_set import ImageSet
+from app.models.project import Project
 from app.schemas.image_sets import FrameRead, ImageSetRead, ImageSetSummary
+from app.services.projects import touch_project
 
 router = APIRouter(prefix="/api/image-sets", tags=["image sets"])
 
@@ -19,28 +22,25 @@ def get_image_set_or_404(session: Session, image_set_id: str) -> ImageSet:
     return image_set
 
 
+def to_summary(session: Session, image_set: ImageSet) -> ImageSetSummary:
+    frame_count = session.exec(
+        select(func.count()).select_from(Frame).where(Frame.image_set_id == image_set.id)
+    ).one()
+    return ImageSetSummary(
+        id=image_set.id,
+        project_id=image_set.project_id,
+        name=image_set.name,
+        created_at=image_set.created_at,
+        updated_at=image_set.updated_at,
+        frame_count=frame_count,
+        source_type=image_set.source_type,
+    )
+
+
 @router.get("", response_model=list[ImageSetSummary])
 def list_image_sets(session: Session = Depends(get_session)) -> list[ImageSetSummary]:
     image_sets = session.exec(select(ImageSet).order_by(ImageSet.created_at.desc())).all()
-
-    result: list[ImageSetSummary] = []
-    for image_set in image_sets:
-        frame_count = session.exec(
-            select(func.count()).select_from(Frame).where(Frame.image_set_id == image_set.id)
-        ).one()
-
-        result.append(
-            ImageSetSummary(
-                id=image_set.id,
-                project_id=image_set.project_id,
-                name=image_set.name,
-                created_at=image_set.created_at,
-                frame_count=frame_count,
-                source_type=image_set.source_type,
-            )
-        )
-
-    return result
+    return [to_summary(session, image_set) for image_set in image_sets]
 
 
 @router.get("/{image_set_id}", response_model=ImageSetRead)
@@ -58,6 +58,7 @@ def read_image_set(
         project_id=image_set.project_id,
         name=image_set.name,
         created_at=image_set.created_at,
+        updated_at=image_set.updated_at,
         source_type=image_set.source_type,
         frames=[
             FrameRead(
@@ -68,10 +69,35 @@ def read_image_set(
                 height=frame.height,
                 frame_index=frame.frame_index,
                 timestamp_seconds=frame.timestamp_seconds,
+                created_at=frame.created_at,
             )
             for frame in frames
         ],
     )
+
+
+@router.delete("/{image_set_id}", status_code=204)
+def delete_image_set(
+    image_set_id: str,
+    session: Session = Depends(get_session),
+) -> Response:
+    image_set = get_image_set_or_404(session, image_set_id)
+    project = session.get(Project, image_set.project_id)
+
+    frames = session.exec(select(Frame).where(Frame.image_set_id == image_set.id)).all()
+    frame_dir: Path | None = Path(frames[0].image_path).parent if frames else None
+    for frame in frames:
+        session.delete(frame)
+
+    session.delete(image_set)
+    if project is not None:
+        touch_project(session, project)
+    session.commit()
+
+    if frame_dir is not None and frame_dir.exists():
+        shutil.rmtree(frame_dir, ignore_errors=True)
+
+    return Response(status_code=204)
 
 
 @router.get("/{image_set_id}/frames/{frame_id}/image")

@@ -18,7 +18,6 @@ from app.services.annotations import get_annotation_payload
 
 
 def coordinate_to_normalized(value: float) -> float:
-    # The frontend may send 0..100 percentages. Accept 0..1 as already normalized.
     if value > 1.0:
         return value / 100.0
     return value
@@ -40,72 +39,48 @@ def build_reconstruction_export(session: Session, project: Project) -> Reconstru
         frames = []
 
     frame_by_key = {(frame.image_set_id, frame.id): frame for frame in frames}
-    frames_by_id: dict[str, list[Frame]] = {}
-    for frame in frames:
-        frames_by_id.setdefault(frame.id, []).append(frame)
-
     annotations: AnnotationPayload = get_annotation_payload(session, project.id)
 
     points: list[PointExport] = []
-    for point_id, positions_by_observation_id in annotations.pointPositionsByPointId.items():
+    for point_id, observations_by_id in annotations.pointObservationsByPointId.items():
         observations: list[PointObservationExport] = []
 
-        for _, position in positions_by_observation_id.items():
-            frame = None
-            image_set_id = position.imageSetId
-
-            if image_set_id is not None:
-                frame = frame_by_key.get((image_set_id, position.imageId))
-            else:
-                candidates = frames_by_id.get(position.imageId, [])
-                if len(candidates) == 1:
-                    frame = candidates[0]
-                    image_set_id = frame.image_set_id
-
-            if frame is None or image_set_id is None:
+        for _, observation in observations_by_id.items():
+            frame = frame_by_key.get((observation.imageSetId, observation.frameId))
+            if frame is None:
                 continue
 
-            x_normalized = coordinate_to_normalized(position.x)
-            y_normalized = coordinate_to_normalized(position.y)
+            x_normalized = coordinate_to_normalized(observation.x)
+            y_normalized = coordinate_to_normalized(observation.y)
 
             observations.append(
                 PointObservationExport(
-                    image_set_id=image_set_id,
-                    image_id=position.imageId,
+                    image_set_id=observation.imageSetId,
+                    image_id=observation.frameId,
                     x_normalized=x_normalized,
                     y_normalized=y_normalized,
-                    x_pixels=x_normalized * frame.width,
-                    y_pixels=y_normalized * frame.height,
+                    x_pixels=x_normalized * frame.width if frame.width is not None else None,
+                    y_pixels=y_normalized * frame.height if frame.height is not None else None,
                 )
             )
 
         points.append(PointExport(id=point_id, observations=observations))
 
     lines: list[LineExport] = []
-    for line_id, occurrences_by_observation_id in annotations.lineOccurrencesByLineId.items():
+    for line_id, observations_by_id in annotations.lineObservationsByLineId.items():
         observations: list[LineObservationExport] = []
 
-        for _, occurrence in occurrences_by_observation_id.items():
-            image_set_id = occurrence.imageSetId
-            frame = None
-
-            if image_set_id is not None:
-                frame = frame_by_key.get((image_set_id, occurrence.imageId))
-            else:
-                candidates = frames_by_id.get(occurrence.imageId, [])
-                if len(candidates) == 1:
-                    frame = candidates[0]
-                    image_set_id = frame.image_set_id
-
-            if frame is None or image_set_id is None:
+        for _, observation in observations_by_id.items():
+            frame = frame_by_key.get((observation.imageSetId, observation.frameId))
+            if frame is None:
                 continue
 
             observations.append(
                 LineObservationExport(
-                    image_set_id=image_set_id,
-                    image_id=occurrence.imageId,
-                    start_point_id=occurrence.startPointId,
-                    end_point_id=occurrence.endPointId,
+                    image_set_id=observation.imageSetId,
+                    image_id=observation.frameId,
+                    start_point_id=observation.startPointId,
+                    end_point_id=observation.endPointId,
                 )
             )
 

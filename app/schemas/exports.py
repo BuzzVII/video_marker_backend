@@ -14,10 +14,10 @@ class ExportImageSet(BaseModel):
 class ExportFrame(BaseModel):
     id: str
     image_set_id: str
-    width: int
-    height: int
+    width: int | None
+    height: int | None
     frame_index: int
-    timestamp_seconds: float
+    timestamp_seconds: float | None
 
 
 class PointObservationExport(BaseModel):
@@ -25,8 +25,8 @@ class PointObservationExport(BaseModel):
     image_id: str
     x_normalized: float
     y_normalized: float
-    x_pixels: float
-    y_pixels: float
+    x_pixels: float | None
+    y_pixels: float | None
 
 
 class PointExport(BaseModel):

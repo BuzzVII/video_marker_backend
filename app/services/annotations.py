@@ -3,7 +3,9 @@ from datetime import datetime, timezone
 from sqlmodel import Session, select
 
 from app.models.annotation_document import AnnotationDocument
+from app.models.project import Project
 from app.schemas.annotations import AnnotationPayload, empty_annotation_payload
+from app.services.projects import touch_project
 
 
 def utc_now() -> datetime:
@@ -25,17 +27,19 @@ def get_annotation_payload(session: Session, project_id: str) -> AnnotationPaylo
 
 def save_annotation_payload(
     session: Session,
-    project_id: str,
+    project: Project,
     payload: AnnotationPayload,
 ) -> AnnotationPayload:
     data = payload.model_dump(mode="json")
-    document = get_annotation_document(session, project_id)
+    document = get_annotation_document(session, project.id)
 
     if document is None:
+        now = utc_now()
         document = AnnotationDocument(
-            project_id=project_id,
+            project_id=project.id,
             data_json=data,
-            updated_at=utc_now(),
+            created_at=now,
+            updated_at=now,
         )
         session.add(document)
     else:
@@ -43,6 +47,7 @@ def save_annotation_payload(
         document.updated_at = utc_now()
         session.add(document)
 
+    touch_project(session, project)
     session.commit()
     session.refresh(document)
     return AnnotationPayload.model_validate(document.data_json)

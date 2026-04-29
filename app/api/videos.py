@@ -4,30 +4,20 @@ from sqlmodel import Session
 from app.db.session import get_session
 from app.schemas.image_sets import ImageSetSummary
 from app.services.projects import create_project
-from app.services.storage import safe_stem
 from app.services.videos import create_image_set_from_video
 
-router = APIRouter(prefix="/api/videos", tags=["legacy videos"])
+router = APIRouter(prefix="/api/videos", tags=["videos compatibility"])
 
 
-@router.post("/upload", response_model=ImageSetSummary)
-async def upload_video(
+@router.post("/upload", response_model=ImageSetSummary, status_code=201)
+async def upload_video_compatibility(
     file: UploadFile = File(...),
     session: Session = Depends(get_session),
 ) -> ImageSetSummary:
-    """
-    Compatibility endpoint.
-
-    New code should use:
-        POST /api/projects/{project_id}/videos/upload
-
-    This legacy endpoint creates a project automatically, then adds the uploaded
-    video as the first image set in that project.
-    """
     if not file.content_type or not file.content_type.startswith("video/"):
         raise HTTPException(status_code=400, detail="Upload must be a video file")
 
-    project_name = safe_stem(file.filename).replace("_", " ")
+    project_name = (file.filename or "Untitled project").rsplit(".", 1)[0].replace("_", " ")
     project = create_project(session, project_name)
 
     try:

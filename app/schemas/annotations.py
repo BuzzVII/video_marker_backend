@@ -1,27 +1,29 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class Point(BaseModel):
+class PointDefinition(BaseModel):
     id: str
-    color: str | None = None
+    label: str | None = None
+    color: str
 
 
-class PointPosition(BaseModel):
+class PointObservation(BaseModel):
     pointId: str
-    imageSetId: str | None = None
-    imageId: str
+    imageSetId: str
+    frameId: str
     x: float
     y: float
 
 
-class Line(BaseModel):
+class LineDefinition(BaseModel):
     id: str
+    label: str | None = None
 
 
-class LineOccurrence(BaseModel):
+class LineObservation(BaseModel):
     lineId: str
-    imageSetId: str | None = None
-    imageId: str
+    imageSetId: str
+    frameId: str
     startPointId: str
     endPointId: str
 
@@ -29,16 +31,11 @@ class LineOccurrence(BaseModel):
 class AnnotationPayload(BaseModel):
     model_config = ConfigDict(extra="allow")
 
-    pointsById: dict[str, Point] = {}
-    pointPositionsByPointId: dict[str, dict[str, PointPosition]] = {}
-    linesById: dict[str, Line] = {}
-    lineOccurrencesByLineId: dict[str, dict[str, LineOccurrence]] = {}
+    pointsById: dict[str, PointDefinition] = Field(default_factory=dict)
+    pointObservationsByPointId: dict[str, dict[str, PointObservation]] = Field(default_factory=dict)
+    linesById: dict[str, LineDefinition] = Field(default_factory=dict)
+    lineObservationsByLineId: dict[str, dict[str, LineObservation]] = Field(default_factory=dict)
 
 
 def empty_annotation_payload() -> AnnotationPayload:
-    return AnnotationPayload(
-        pointsById={},
-        pointPositionsByPointId={},
-        linesById={},
-        lineOccurrencesByLineId={},
-    )
+    return AnnotationPayload()
