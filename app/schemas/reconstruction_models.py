@@ -64,6 +64,9 @@ class ReconstructionModelData(BaseModel):
 
 
 class ReconstructionModelCreate(BaseModel):
+    # Optional so the frontend can either let the backend allocate ids or preserve
+    # an id it has already created locally.
+    id: str | None = None
     data_json: ReconstructionModelData = Field(default_factory=ReconstructionModelData)
     source: Literal["manual", "solver", "mixed"] = "manual"
 

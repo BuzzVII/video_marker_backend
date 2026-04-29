@@ -10,7 +10,11 @@ from app.schemas.reconstruction_models import (
     ReconstructionModelUpdate,
 )
 from app.services.projects import touch_project
-from app.services.reconstruction_models import create_reconstruction_model, update_reconstruction_model
+from app.services.reconstruction_models import (
+    create_reconstruction_model,
+    update_reconstruction_model,
+    upsert_reconstruction_model,
+)
 
 router = APIRouter(prefix="/api/projects/{project_id}/models", tags=["reconstruction models"])
 
@@ -59,6 +63,12 @@ def create_model(
     session: Session = Depends(get_session),
 ) -> ReconstructionModelRead:
     project = get_project_or_404(session, project_id)
+
+    if payload.id:
+        existing = session.get(ReconstructionModel, payload.id)
+        if existing is not None:
+            raise HTTPException(status_code=409, detail="Reconstruction model id already exists")
+
     model = create_reconstruction_model(session, project, payload)
     return ReconstructionModelRead.model_validate(model, from_attributes=True)
 
@@ -81,9 +91,12 @@ def replace_model(
     payload: ReconstructionModelUpdate,
     session: Session = Depends(get_session),
 ) -> ReconstructionModelRead:
+    # PUT is idempotent here. If the frontend has already generated a model id
+    # locally, saving to that URL will create the model instead of returning 404.
     project = get_project_or_404(session, project_id)
-    model = get_model_or_404(session, project_id, model_id)
-    model = update_reconstruction_model(session, project, model, payload)
+    model, created = upsert_reconstruction_model(session, project, model_id, payload)
+    if model.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Reconstruction model not found")
     return ReconstructionModelRead.model_validate(model, from_attributes=True)
 
 
