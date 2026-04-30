@@ -2,7 +2,11 @@
 __pycache__/
 *.pyc
 .env
+
 data/*.db
 data/uploads/*
 data/frames/*
-!.gitkeep
+
+!data/.gitkeep
+!data/uploads/.gitkeep
+!data/frames/.gitkeep

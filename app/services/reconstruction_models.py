@@ -1,10 +1,17 @@
+from copy import deepcopy
 from datetime import datetime, timezone
+from typing import Any
 
 from sqlmodel import Session, func, select
 
 from app.models.project import Project
 from app.models.reconstruction_model import ReconstructionModel
-from app.schemas.reconstruction_models import ReconstructionModelCreate, ReconstructionModelUpdate
+from app.schemas.reconstruction_models import (
+    ReconstructionModelCreate,
+    ReconstructionModelRead,
+    ReconstructionModelUpdate,
+    default_reconstruction_model_data,
+)
 from app.services.projects import touch_project
 
 
@@ -21,32 +28,59 @@ def next_model_version(session: Session, project_id: str) -> int:
     return int(max_version or 0) + 1
 
 
+def normalize_model_data(data: dict[str, Any] | None) -> dict[str, Any]:
+    """Add defaults for known model fields without dropping unknown frontend keys."""
+    normalized = default_reconstruction_model_data()
+    if data:
+        normalized.update(deepcopy(data))
+
+    for key in (
+        "cuboidsById",
+        "pointVertexConstraintsById",
+        "imageLineEdgeConstraintsById",
+        "edgeLengthConstraintsById",
+        "faceAssociationsById",
+        "wallFeaturesById",
+    ):
+        if normalized.get(key) is None:
+            normalized[key] = {}
+
+    if normalized.get("activeFaces") is None:
+        normalized["activeFaces"] = []
+
+    return normalized
+
+
+def reconstruction_model_to_read(model: ReconstructionModel) -> ReconstructionModelRead:
+    return ReconstructionModelRead(
+        id=model.id,
+        project_id=model.project_id,
+        version=model.version,
+        data_json=normalize_model_data(model.data_json),
+        source=model.source,
+        created_at=model.created_at,
+        updated_at=model.updated_at,
+    )
+
+
 def create_reconstruction_model(
     session: Session,
     project: Project,
     payload: ReconstructionModelCreate,
 ) -> ReconstructionModel:
     now = utc_now()
-    model = ReconstructionModel(
-        id=payload.id if payload.id else None,
-        project_id=project.id,
-        version=next_model_version(session, project.id),
-        data_json=payload.data_json.model_dump(mode="json"),
-        source=payload.source,
-        created_at=now,
-        updated_at=now,
-    )
-    if model.id is None:
-        # Let the SQLModel default factory assign the id.
-        model = ReconstructionModel(
-            project_id=project.id,
-            version=next_model_version(session, project.id),
-            data_json=payload.data_json.model_dump(mode="json"),
-            source=payload.source,
-            created_at=now,
-            updated_at=now,
-        )
+    kwargs = {
+        "project_id": project.id,
+        "version": next_model_version(session, project.id),
+        "data_json": normalize_model_data(payload.data_json),
+        "source": payload.source,
+        "created_at": now,
+        "updated_at": now,
+    }
+    if payload.id:
+        kwargs["id"] = payload.id
 
+    model = ReconstructionModel(**kwargs)
     session.add(model)
     touch_project(session, project)
     session.commit()
@@ -61,7 +95,7 @@ def update_reconstruction_model(
     payload: ReconstructionModelUpdate,
 ) -> ReconstructionModel:
     if payload.data_json is not None:
-        model.data_json = payload.data_json.model_dump(mode="json")
+        model.data_json = normalize_model_data(payload.data_json)
     if payload.source is not None:
         model.source = payload.source
     model.updated_at = utc_now()
@@ -92,7 +126,7 @@ def upsert_reconstruction_model(
         id=model_id,
         project_id=project.id,
         version=next_model_version(session, project.id),
-        data_json=payload.data_json.model_dump(mode="json") if payload.data_json else {},
+        data_json=normalize_model_data(payload.data_json),
         source=payload.source or "manual",
         created_at=now,
         updated_at=now,

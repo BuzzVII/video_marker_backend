@@ -12,7 +12,7 @@ from app.schemas.reconstruction_models import (
 from app.services.projects import touch_project
 from app.services.reconstruction_models import (
     create_reconstruction_model,
-    update_reconstruction_model,
+    reconstruction_model_to_read,
     upsert_reconstruction_model,
 )
 
@@ -39,7 +39,7 @@ def read_latest_model(
     ).first()
     if model is None:
         raise HTTPException(status_code=404, detail="No reconstruction models found for project")
-    return ReconstructionModelRead.model_validate(model, from_attributes=True)
+    return reconstruction_model_to_read(model)
 
 
 @router.get("", response_model=list[ReconstructionModelRead])
@@ -53,7 +53,7 @@ def list_models(
         .where(ReconstructionModel.project_id == project_id)
         .order_by(ReconstructionModel.version.desc())
     ).all()
-    return [ReconstructionModelRead.model_validate(model, from_attributes=True) for model in models]
+    return [reconstruction_model_to_read(model) for model in models]
 
 
 @router.post("", response_model=ReconstructionModelRead, status_code=201)
@@ -70,7 +70,7 @@ def create_model(
             raise HTTPException(status_code=409, detail="Reconstruction model id already exists")
 
     model = create_reconstruction_model(session, project, payload)
-    return ReconstructionModelRead.model_validate(model, from_attributes=True)
+    return reconstruction_model_to_read(model)
 
 
 @router.get("/{model_id}", response_model=ReconstructionModelRead)
@@ -81,7 +81,7 @@ def read_model(
 ) -> ReconstructionModelRead:
     get_project_or_404(session, project_id)
     model = get_model_or_404(session, project_id, model_id)
-    return ReconstructionModelRead.model_validate(model, from_attributes=True)
+    return reconstruction_model_to_read(model)
 
 
 @router.put("/{model_id}", response_model=ReconstructionModelRead)
@@ -97,7 +97,7 @@ def replace_model(
     model, created = upsert_reconstruction_model(session, project, model_id, payload)
     if model.project_id != project_id:
         raise HTTPException(status_code=404, detail="Reconstruction model not found")
-    return ReconstructionModelRead.model_validate(model, from_attributes=True)
+    return reconstruction_model_to_read(model)
 
 
 @router.delete("/{model_id}", status_code=204)

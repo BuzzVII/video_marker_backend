@@ -289,3 +289,14 @@ The new migration adds timestamps where needed and creates the `reconstruction_m
 ## Future work
 
 The API intentionally stores annotation and reconstruction documents as JSON. Once the workflow settles, cuboids, observations and constraints can be normalised into separate SQL tables without changing the project level ownership model.
+
+
+## Model save behaviour
+
+`PUT /api/projects/{project_id}/models/{model_id}` is intentionally idempotent.
+
+If `{model_id}` already exists in the project, the model is replaced.
+
+If `{model_id}` does not exist yet, the backend creates it using that id. This supports frontends that create a local model id before the first save.
+
+You can also use `POST /api/projects/{project_id}/models` and let the backend allocate a model id.
