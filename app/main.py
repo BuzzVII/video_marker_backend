@@ -5,6 +5,7 @@ from app.api.health import router as health_router
 from app.api.image_sets import router as image_sets_router
 from app.api.projects import router as projects_router
 from app.api.reconstruction_models import router as reconstruction_models_router
+from app.api.radiance_fields import router as radiance_fields_router
 from app.api.videos import router as videos_router
 from app.core.config import settings
 from app.services.storage import ensure_data_dirs
@@ -30,6 +31,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(projects_router)
     app.include_router(reconstruction_models_router)
+    app.include_router(radiance_fields_router)
     app.include_router(image_sets_router)
     app.include_router(videos_router)
 

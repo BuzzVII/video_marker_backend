@@ -10,6 +10,7 @@ from app.models.frame import Frame
 from app.models.image_set import ImageSet
 from app.models.project import Project
 from app.models.reconstruction_model import ReconstructionModel
+from app.models.radiance_field import RadianceField, RadianceFieldJob
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
@@ -19,7 +20,7 @@ if config.config_file_name is not None:
 
 target_metadata = SQLModel.metadata
 
-_ = (Project, ImageSet, Frame, AnnotationDocument, ReconstructionModel)
+_ = (Project, ImageSet, Frame, AnnotationDocument, ReconstructionModel, RadianceFieldJob, RadianceField)
 
 
 def run_migrations_offline() -> None:

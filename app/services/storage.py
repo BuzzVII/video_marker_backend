@@ -10,6 +10,7 @@ def ensure_data_dirs() -> None:
     settings.data_dir.mkdir(parents=True, exist_ok=True)
     settings.upload_dir.mkdir(parents=True, exist_ok=True)
     settings.frame_dir.mkdir(parents=True, exist_ok=True)
+    settings.radiance_field_dir.mkdir(parents=True, exist_ok=True)
 
 
 def safe_stem(filename: str | None) -> str:
